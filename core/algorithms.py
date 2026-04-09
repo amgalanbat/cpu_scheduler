@@ -138,7 +138,7 @@ def round_robin(processes: List[Process], quantum: int = 2) -> List[dict]:
 
 def srt(processes: List[Process]) -> List[dict]:
     """
-    Shortest Remaining Time — preemptive version of SJF.
+    Shortest Remaining Time - preemptive version of SJF.
     At every tick, the process with the least remaining time runs.
     If a new process arrives with shorter remaining time, it preempts.
     """
@@ -245,5 +245,75 @@ def preemptive_priority(processes: List[Process]) -> List[dict]:
         else:
             process.state = ProcessState.READY
             heapq.heappush(ready_queue, (process.priority, process.pid, process))
+
+    return timeline
+
+def preemptive_priority_aging(processes: List[Process]) -> List[dict]:
+    """
+    Preemptive Priority with Aging.
+    Priority improves the longer a process waits - prevents starvation.
+    """
+    import heapq
+    from core.starvation import apply_aging
+
+    timeline = []
+    current_time = 0
+    remaining = sorted(processes, key=lambda p: p.arrival_time)
+    ready_queue = []
+    i = 0
+    total_ticks = sum(p.burst_time for p in processes)
+    ticks_done = 0
+
+    # Initialize aged priority
+    for p in processes:
+        p.aged_priority = p.priority
+
+    while ticks_done < total_ticks:
+        # Load arrived processes
+        while i < len(remaining) and remaining[i].arrival_time <= current_time:
+            p = remaining[i]
+            p.state = ProcessState.READY
+            i += 1
+
+        # Apply aging to all ready processes
+        ready_processes = [p for p in processes if p.state == ProcessState.READY]
+        apply_aging(processes, current_time)
+
+        # Rebuild heap with aged priorities
+        ready_queue = []
+        for p in ready_processes:
+            heapq.heappush(ready_queue, (p.aged_priority, p.pid, p))
+
+        if not ready_queue:
+            current_time += 1
+            continue
+
+        _, _, process = heapq.heappop(ready_queue)
+
+        if process.start_time is None:
+            process.start_time = current_time
+
+        process.state = ProcessState.RUNNING
+
+        timeline.append({
+            "tick": current_time,
+            "pid": process.pid,
+            "name": process.name,
+            "state": ProcessState.RUNNING,
+            "priority": process.priority,
+            "aged_priority": process.aged_priority,
+            "is_starving": process.is_starving,
+        })
+
+        process.remaining_time -= 1
+        current_time += 1
+        ticks_done += 1
+
+        if process.remaining_time == 0:
+            process.finish_time = current_time
+            process.state = ProcessState.FINISHED
+            process.compute_stats()
+        else:
+            process.state = ProcessState.READY
 
     return timeline

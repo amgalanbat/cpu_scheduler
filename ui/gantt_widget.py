@@ -82,15 +82,34 @@ class GanttWidget(QWidget):
         name_map = {e["pid"]: e["name"] for e in self._timeline}
 
         # Draw each tick as a bar
+        # for event in self._timeline:
+        #     pid = event["pid"]
+        #     tick = event["tick"]
+        #     y = pid_to_y[pid]
+        #     color = self._color_map.get(pid, "#ccc")
+        #     self.ax.barh(
+        #         y, 1, left=tick, height=0.5,
+        #         color=color, edgecolor="white",
+        #         linewidth=0.5, align="center"
+        #     )
+        # Draw each tick as a barand highlight starving processes with a red border
         for event in self._timeline:
             pid = event["pid"]
             tick = event["tick"]
             y = pid_to_y[pid]
             color = self._color_map.get(pid, "#ccc")
+
+            # Starvation highlight - red border on starving ticks
+            is_starving = event.get("is_starving", False)
+            edge_color = "#e53935" if is_starving else "white"
+            edge_width = 2.0 if is_starving else 0.5
+
             self.ax.barh(
                 y, 1, left=tick, height=0.5,
-                color=color, edgecolor="white",
-                linewidth=0.5, align="center"
+                color=color,
+                edgecolor=edge_color,
+                linewidth=edge_width,
+                align="center"
             )
 
         # Y axis labels
@@ -123,7 +142,7 @@ class GanttWidget(QWidget):
             framealpha=0.7
         )
 
-        title = "Gantt chart — final" if final else "Gantt chart — live"
+        title = "Gantt chart - final" if final else "Gantt chart - live"
         self.ax.set_title(title, fontsize=9, color="#555")
         self.fig.tight_layout()
         self.canvas.draw()

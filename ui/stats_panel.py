@@ -14,7 +14,7 @@ class StatCard(QWidget):
         self.label = QLabel(label.upper())
         self.label.setStyleSheet("font-size: 10px; color: #888; font-weight: bold;")
 
-        self.value = QLabel("—")
+        self.value = QLabel("-")
         self.value.setStyleSheet("font-size: 22px; font-weight: bold; color: #222;")
 
         layout.addWidget(self.label)
@@ -48,4 +48,4 @@ class StatsPanel(QWidget):
 
     def reset(self):
         for card in [self.tick_card, self.cpu_card, self.running_card, self.remaining_card]:
-            card.set_value("—")
+            card.set_value("-")

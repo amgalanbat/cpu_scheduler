@@ -63,7 +63,7 @@ def test_srt_preempts():
         Process(pid=2, name="P2", burst_time=2, arrival_time=1),
     ]
     timeline = srt(processes)
-    # P1 runs tick 0, P2 arrives at 1 with shorter remaining — preempts
+    # P1 runs tick 0, P2 arrives at 1 with shorter remaining - preempts
     # P2 runs ticks 1-2, P1 resumes ticks 3-7
     assert timeline[0]["pid"] == 1  # tick 0: P1
     assert timeline[1]["pid"] == 2  # tick 1: P2 preempts
@@ -78,7 +78,7 @@ def test_preemptive_priority_preempts():
         Process(pid=2, name="P2", burst_time=3, arrival_time=2, priority=1),
     ]
     timeline = preemptive_priority(processes)
-    # P1 runs ticks 0-1, P2 arrives at tick 2 with higher priority — preempts
+    # P1 runs ticks 0-1, P2 arrives at tick 2 with higher priority - preempts
     assert timeline[0]["pid"] == 1
     assert timeline[1]["pid"] == 1
     assert timeline[2]["pid"] == 2  # P2 preempts at tick 2

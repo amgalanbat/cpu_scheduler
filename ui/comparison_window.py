@@ -123,7 +123,7 @@ class ComparisonWindow(QWidget):
         root.addWidget(header)
 
         sub = QLabel(
-            f"Same {len(self._processes)} processes — "
+            f"Same {len(self._processes)} processes - "
             "each algorithm runs independently"
         )
         sub.setStyleSheet("font-size: 12px; color: #888;")

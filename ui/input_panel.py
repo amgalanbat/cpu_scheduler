@@ -1,15 +1,10 @@
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QLineEdit, QSpinBox, QComboBox, QPushButton,
-    QListWidget, QListWidgetItem, QButtonGroup, QScrollArea, QFrame
-)
 from PyQt6.QtCore import Qt, pyqtSignal
-from core.process import Process, ProcessType
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QSpinBox, QComboBox, QPushButton,
     QListWidget, QListWidgetItem, QFrame, QSlider
 )
+from core.process import Process, ProcessType
 
 class InputPanel(QWidget):
     compare_requested = pyqtSignal(int)
@@ -33,7 +28,7 @@ class InputPanel(QWidget):
         layout.addWidget(self._section_label("Algorithm"))
         self.algo_combo = QComboBox()
         # self.algo_combo.addItems(["FCFS", "SJF", "RR"])
-        self.algo_combo.addItems(["FCFS", "SJF", "SRT", "RR", "PP"])
+        self.algo_combo.addItems(["FCFS", "SJF", "SRT", "RR", "PP", "PP+Aging"])
         self.algo_combo.currentTextChanged.connect(self._on_algo_changed)
         layout.addWidget(self.algo_combo)
 

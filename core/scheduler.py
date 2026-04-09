@@ -1,14 +1,15 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 from core.process import Process, ProcessState
-from core.algorithms import fcfs, sjf, round_robin, srt, preemptive_priority
+from core.algorithms import fcfs, sjf, round_robin, srt, preemptive_priority, preemptive_priority_aging
 
 ALGORITHMS = {
     "FCFS": fcfs,
-    "SJF": sjf,
-    "RR": round_robin,
-    "SRT": srt,
-    "PP": preemptive_priority,
+    "SJF":  sjf,
+    "SRT":  srt,
+    "RR":   round_robin,
+    "PP":   preemptive_priority,
+    "PP+Aging": preemptive_priority_aging,
 }
 @dataclass
 class SimulationResult:

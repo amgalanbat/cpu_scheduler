@@ -23,15 +23,24 @@ class Process:
     process_type: ProcessType = ProcessType.PROCESS
     state: ProcessState = ProcessState.NEW
 
-    # Filled during simulation — don't set these manually
+    # Filled during simulation, manually hiigeed hereggu
     remaining_time: int = field(init=False)
     start_time: Optional[int] = field(default=None, init=False)
     finish_time: Optional[int] = field(default=None, init=False)
     waiting_time: int = field(default=0, init=False)
     turnaround_time: int = field(default=0, init=False)
 
+    starvation_threshold: int = field(default=10, init=True)
+    wait_since: Optional[int] = field(default=None, init=False)
+    is_starving: bool = field(default=False, init=False)
+    aged_priority: int = field(default=0, init=False)
+
     def __post_init__(self):
         self.remaining_time = self.burst_time
+        self.aged_priority = self.priority
+
+    # def __post_init__(self):
+    #     self.remaining_time = self.burst_time
 
     @property
     def is_finished(self) -> bool:
