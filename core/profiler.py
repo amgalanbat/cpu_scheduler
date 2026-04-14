@@ -48,7 +48,8 @@ class ProfilerWorker(QThread):
     finished = pyqtSignal(object)
     error = pyqtSignal(str)
 
-    def __init__(self, script_path: str, interval: float = 0.1):
+    # def __init__(self, script_path: str, interval: float = 0.1):
+    def __init__(self, script_path: str, interval: float = 0.2):
         super().__init__()
         self.script_path = script_path
         self.interval = interval
@@ -66,13 +67,71 @@ class ProfilerWorker(QThread):
             ps_process = psutil.Process(process.pid)
             start_time = time.time()
             time.sleep(0.05)
+            time.sleep(0.3)
+            # capture baseline CPU times before sampling loop
+            # try:
+            #     prev_cpu_times = ps_process.cpu_times()
+            #     prev_cpu_time = prev_cpu_times.user + prev_cpu_times.system
+            # except (psutil.NoSuchProcess, psutil.AccessDenied):
+            #     prev_cpu_time = 0.0
+            # prev_sample_time = time.time()
+
+            try:
+                initial_children = ps_process.children(recursive=False)
+                measure_target = initial_children[0] \
+                    if len(initial_children) == 1 else ps_process
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                measure_target = ps_process
+
+            try:
+                prev_cpu_times = measure_target.cpu_times()
+                prev_cpu_time = prev_cpu_times.user + prev_cpu_times.system
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                prev_cpu_time = 0.0
+            prev_sample_time = time.time()
 
             while process.poll() is None and self._running:
                 try:
-                    cpu = ps_process.cpu_percent(interval=None)
-                    mem = ps_process.memory_info().rss / (1024 * 1024)
-                    status = ps_process.status()
-                    elapsed = time.time() - start_time
+                    # cpu = ps_process.cpu_percent(interval=None)
+                    # cpu = ps_process.cpu_percent(interval=0.1)
+                    # mem = ps_process.memory_info().rss / (1024 * 1024)
+                    # status = ps_process.status()
+                    # elapsed = time.time() - start_time
+                    now = time.time()
+                    elapsed = now - start_time
+                    elapsed_since_last = now - prev_sample_time
+
+                    try:
+                        children_list = ps_process.children(recursive=False)
+                        target = children_list[0] if len(children_list) == 1 else ps_process
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        target = ps_process
+
+                    try:
+                        curr_cpu_times = target.cpu_times()
+                        curr_cpu_time = (curr_cpu_times.user + curr_cpu_times.system )
+                        cpu_delta = curr_cpu_time - prev_cpu_time
+                        # cpu = round(
+                        #     (cpu_delta / max(elapsed_since_last, 0.001)) * 100, 1
+                        # )
+                        cpu = max(0.0, round(
+                            (cpu_delta / max(elapsed_since_last, 0.001)) * 100, 1
+                        ))
+                        prev_cpu_time = curr_cpu_time
+                        prev_sample_time = now
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        cpu = 0.0
+
+                    try:
+                        mem = target.memory_info().rss / (1024 * 1024)
+                        status = target.status()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        mem = 0.0
+                        status = "unknown"
+                    
+
+                    # mem = ps_process.memory_info().rss / (1024 * 1024)
+                    # status = ps_process.status()
 
                     # Collect thread info
                     threads = []
@@ -87,10 +146,16 @@ class ProfilerWorker(QThread):
                     try:
                         for child in ps_process.children(recursive=True):
                             try:
+                                # cpu_percent=round(child.cpu_percent(), 1)
+                                # calculate cpu delta before passing to ChildProcessInfo
+                                child_times = child.cpu_times()
+                                child_cpu = round(
+                                    (child_times.user + child_times.system) / max(elapsed, 0.001) * 100, 1
+                                )
                                 children.append(ChildProcessInfo(
                                     pid=child.pid,
                                     name=child.name(),
-                                    cpu_percent=round(child.cpu_percent(), 1),
+                                    cpu_percent=child_cpu,
                                     memory_mb=round(
                                         child.memory_info().rss / (1024 * 1024), 2
                                     ),
@@ -100,6 +165,18 @@ class ProfilerWorker(QThread):
                                 pass
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
+
+                    #filter for initial CPU spikes
+                    if cpu > 200 and len(self.samples) == 0:
+                        # Reset baseline and skip this sample
+                        try:
+                            curr = target.cpu_times()
+                            prev_cpu_time = curr.user + curr.system
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            pass
+                        prev_sample_time = time.time()
+                        time.sleep(self.interval)
+                        continue
 
                     sample = ProfileSample(
                         timestamp=round(elapsed, 2),
@@ -137,8 +214,11 @@ class ProfilerWorker(QThread):
                 duration=round(duration, 2),
                 peak_cpu=round(max(s.cpu_percent for s in self.samples), 1),
                 peak_memory_mb=round(max(s.memory_mb for s in self.samples), 2),
+                # avg_cpu=round(
+                #     sum(s.cpu_percent for s in self.samples) / len(self.samples), 1
+                # ),
                 avg_cpu=round(
-                    sum(s.cpu_percent for s in self.samples) / len(self.samples), 1
+                    max(0, sum(s.cpu_percent for s in self.samples) / len(self.samples)), 1
                 ),
                 avg_memory_mb=round(
                     sum(s.memory_mb for s in self.samples) / len(self.samples), 2

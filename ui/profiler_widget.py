@@ -267,6 +267,22 @@ class ProfilerWidget(QWidget):
         for ax in [self.ax_cpu, self.ax_mem, self.ax_threads]:
             ax.clear()
             ax.set_facecolor("#fafafa")
+        
+        # Memory chart - remove last sample if it's a zero caused by process exit
+        mem_samples = self._mem_samples
+        if len(mem_samples) > 2 and mem_samples[-1] == 0:
+            mem_samples = mem_samples[:-1]
+            times_mem = self._times[:-1]
+        else:
+            times_mem = self._times
+
+        # Thread chart - same fix
+        thread_samples = self._thread_samples
+        if len(thread_samples) > 2 and thread_samples[-1] == 0:
+            thread_samples = thread_samples[:-1]
+            times_threads = self._times[:-1]
+        else:
+            times_threads = self._times
 
         # CPU chart
         self.ax_cpu.plot(
@@ -279,16 +295,21 @@ class ProfilerWidget(QWidget):
         )
         self.ax_cpu.set_ylabel("CPU %", fontsize=8)
         self.ax_cpu.set_ylim(bottom=0)
+        if self._cpu_samples:
+            reasonable_max = min(max(self._cpu_samples), 200)
+            self.ax_cpu.set_ylim(0, max(reasonable_max + 10, 20))
 
         # Memory chart
-        self.ax_mem.plot(
-            self._times, self._mem_samples,
-            color="#4DB6AC", linewidth=1.5
-        )
-        self.ax_mem.fill_between(
-            self._times, self._mem_samples,
-            alpha=0.15, color="#4DB6AC"
-        )
+        # self.ax_mem.plot(
+        #     self._times, self._mem_samples,
+        #     color="#4DB6AC", linewidth=1.5
+        # )
+        # self.ax_mem.fill_between(
+        #     self._times, self._mem_samples,
+        #     alpha=0.15, color="#4DB6AC"
+        # )
+        self.ax_mem.plot(times_mem, mem_samples, color="#4DB6AC", linewidth=1.5)
+        self.ax_mem.fill_between(times_mem, mem_samples, alpha=0.15, color="#4DB6AC")
         self.ax_mem.set_ylabel("Memory MB", fontsize=8)
         self.ax_mem.set_ylim(bottom=0)
 
@@ -405,7 +426,8 @@ class ProfilerWidget(QWidget):
             f"Profiling {os.path.basename(path)}..."
         )
 
-        self._worker = ProfilerWorker(path, interval=0.1)
+        # self._worker = ProfilerWorker(path, interval=0.1)
+        self._worker = ProfilerWorker(path, interval=0.2)
         self._worker.sample_ready.connect(self._on_sample)
         self._worker.finished.connect(self._on_finished)
         self._worker.error.connect(self._on_error)
