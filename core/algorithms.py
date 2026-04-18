@@ -1,5 +1,7 @@
 from typing import List
-from core.process import Process, ProcessState
+from core.thread import Thread
+from core.process import Process
+from core.constants import ProcessState
 import heapq
 
 
@@ -96,7 +98,8 @@ def round_robin(processes: List[Process], quantum: int = 2) -> List[dict]:
     remaining = sorted(processes, key=lambda p: p.arrival_time)
     i = 0
 
-    # Load first batch
+    if not any(p.arrival_time == 0 for p in remaining):
+        current_time = remaining[0].arrival_time
     while i < len(remaining) and remaining[i].arrival_time <= current_time:
         queue.append(remaining[i])
         i += 1

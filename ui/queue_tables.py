@@ -3,7 +3,8 @@ from PyQt6.QtWidgets import (
     QLabel, QListWidget, QListWidgetItem
 )
 from PyQt6.QtGui import QColor
-from core.process import Process, ProcessState
+from core.process import Process
+from core.constants import ProcessState
 
 QUEUE_COLORS = {
     "ready":   ("#e8eaf6", "#3949ab"),
