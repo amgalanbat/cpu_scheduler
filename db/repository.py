@@ -42,7 +42,7 @@ def save_run(
             record = ProcessRecord(
                 run_id=run.id,
                 name=p.name,
-                process_type=p.process_type.value,
+                process_type=p.process_type.value if hasattr(p.process_type, "value") else p.process_type,
                 burst_time=p.burst_time,
                 arrival_time=p.arrival_time,
                 priority=p.priority,
@@ -70,11 +70,22 @@ def get_all_runs() -> List[SimulationRun]:
 
 def get_run_with_processes(run_id: int) -> Optional[SimulationRun]:
     """Retrieve a single run with all its process records."""
+    from sqlalchemy.orm import joinedload
     session: Session = SessionLocal()
+    # try:
+    #     return session.query(SimulationRun)\
+    #         .filter(SimulationRun.id == run_id)\
+    #         .first()
+    # finally:
+    #     session.close()
     try:
-        return session.query(SimulationRun)\
+        run = session.query(SimulationRun)\
+            .options(joinedload(SimulationRun.processes))\
             .filter(SimulationRun.id == run_id)\
             .first()
+        if run:
+            _ = run.processes
+        return run
     finally:
         session.close()
 

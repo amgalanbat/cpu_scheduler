@@ -17,7 +17,8 @@ from db.repository import init_db, save_run
 from ui.history_window import HistoryWindow
 
 from core.worker import SimulationWorker
-from core.process import ProcessState
+# from core.process import ProcessState
+# from core.constants import ProcessState
 from core.starvation import get_starving_processes
 
 class MainWindow(QMainWindow):
@@ -70,7 +71,7 @@ class MainWindow(QMainWindow):
         reset_btn.clicked.connect(self._on_reset)
         top_row = QHBoxLayout()
         top_row.addStretch()
-        top_row.addWidget(reset_btn)
+        # top_row.addWidget(reset_btn)
         cpu_layout.addLayout(top_row)
 
         history_btn = QPushButton("History")
@@ -99,8 +100,13 @@ class MainWindow(QMainWindow):
         # --- Tab 2: Memory ---
         self.memory_widget = MemoryWidget()
 
+        # --- Tab 3: Profiler ---
+        self.profiler_widget = ProfilerWidget()
+
+        # all tabs
         self.tabs.addTab(cpu_tab, "CPU Scheduling")
         self.tabs.addTab(self.memory_widget, "Memory Allocation")
+        self.tabs.addTab(self.profiler_widget, "Process Profiler")
 
         root.addWidget(self.input_panel)
         root.addWidget(self.tabs)
@@ -109,15 +115,10 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.status)
         self.status.showMessage("Ready - add processes to begin")
 
-        # --- Tab 3 : Profiler ---
-        self.profiler_widget = ProfilerWidget()
-        self.tabs.addTab(cpu_tab, "CPU Scheduling")
-        self.tabs.addTab(self.memory_widget, "Memory Allocation")
-        self.tabs.addTab(self.profiler_widget, "Process Profiler")
-
     def _on_process_added(self, process):
+        ptype = process.process_type.value if hasattr(process.process_type, "value") else process.process_type
         self.status.showMessage(
-            f"Added {process.process_type.value} '{process.name}' "
+            f"Added {ptype} '{process.name}' "
             f"(burst={process.burst_time}, arrival={process.arrival_time})"
         )
 
@@ -157,7 +158,7 @@ class MainWindow(QMainWindow):
         cpu = (self._tick_count / total) * 100 if total > 0 else 0
         remaining = sum(
             p.remaining_time for p in processes
-            if p.state != ProcessState.FINISHED
+            if (p.state.value if hasattr(p.state, "value") else p.state) != "finished"
         )
         self.stats_panel.update(
             tick=event["tick"],
