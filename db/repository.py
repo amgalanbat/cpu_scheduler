@@ -42,7 +42,7 @@ def save_run(
             record = ProcessRecord(
                 run_id=run.id,
                 name=p.name,
-                process_type=p.process_type.value,
+                process_type=p.process_type.value if hasattr(p.process_type, "value") else p.process_type,
                 burst_time=p.burst_time,
                 arrival_time=p.arrival_time,
                 priority=p.priority,

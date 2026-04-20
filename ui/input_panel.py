@@ -4,13 +4,16 @@ from PyQt6.QtWidgets import (
     QLineEdit, QSpinBox, QComboBox, QPushButton,
     QListWidget, QListWidgetItem, QFrame, QSlider
 )
-from core.process import Process, ProcessType
+from core.process import Process
+from core.constants import ProcessType
+from core.presets import get_preset_names, get_preset_description, load_preset
 
 class InputPanel(QWidget):
     compare_requested = pyqtSignal(int)
     process_added = pyqtSignal(Process)
     process_removed = pyqtSignal(int)
     run_requested = pyqtSignal(str, int)
+    preset_loaded = pyqtSignal(list)
 
     def __init__(self):
         super().__init__()
@@ -24,10 +27,38 @@ class InputPanel(QWidget):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
 
+        # Presets
+        layout.addWidget(self._section_label("Preset workload"))
+
+        preset_row = QHBoxLayout()
+        self.preset_combo = QComboBox()
+        self.preset_combo.addItem("Select scenario")
+        self.preset_combo.addItems(get_preset_names())
+        self.preset_combo.currentTextChanged.connect(self._on_preset_changed)
+        preset_row.addWidget(self.preset_combo)
+
+        load_btn = QPushButton("Load")
+        load_btn.setStyleSheet(
+            "QPushButton { background: #1565C0; color: white; "
+            "padding: 5px 12px; border-radius: 4px; font-weight: bold; }"
+            "QPushButton:hover { background: #0D47A1; }"
+        )
+        load_btn.clicked.connect(self._on_load_preset)
+        preset_row.addWidget(load_btn)
+        layout.addLayout(preset_row)
+
+        self.preset_desc = QLabel("")
+        self.preset_desc.setStyleSheet(
+            "font-size: 10px; color: #888; font-style: italic;"
+        )
+        self.preset_desc.setWordWrap(True)
+        layout.addWidget(self.preset_desc)
+
+        layout.addWidget(self._divider())
+
         # Algorithm selection
         layout.addWidget(self._section_label("Algorithm"))
         self.algo_combo = QComboBox()
-        # self.algo_combo.addItems(["FCFS", "SJF", "RR"])
         self.algo_combo.addItems(["FCFS", "SJF", "SRT", "RR", "PP", "PP+Aging"])
         self.algo_combo.currentTextChanged.connect(self._on_algo_changed)
         layout.addWidget(self.algo_combo)
@@ -197,3 +228,30 @@ class InputPanel(QWidget):
         # Slider 1=slow(0.8s) to 10=fast(0.05s)
         val = self.speed_slider.value()
         return round(0.8 - (val - 1) * (0.75 / 9), 3)
+    
+    def _on_preset_changed(self, name):
+        if name == "Select scenario":
+            self.preset_desc.setText("")
+            return
+        self.preset_desc.setText(get_preset_description(name))
+
+    def _on_load_preset(self):
+        name = self.preset_combo.currentText()
+        if name == "Select scenario":
+            return
+
+        self.clear()
+        processes = load_preset(name)
+        self._pid_counter = len(processes) + 1
+
+        for p in processes:
+            self._processes.append(p)
+
+            label = (f"{p.name} | burst={p.burst_time} "
+                     f"arr={p.arrival_time} pri={p.priority}")
+            item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole, p.pid)
+            self.process_list.addItem(item)
+            self.process_added.emit(p)
+
+        self.preset_loaded.emit(processes)

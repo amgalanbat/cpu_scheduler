@@ -55,10 +55,13 @@ class QueueTables(QWidget):
         for box in [self.ready_box, self.running_box, self.waiting_box]:
             layout.addWidget(box)
 
-    def update_queues(self, processes: list[Process]):
-        ready = [p for p in processes if p.state == ProcessState.READY]
-        running = [p for p in processes if p.state == ProcessState.RUNNING]
-        finished = [p for p in processes if p.state == ProcessState.FINISHED]
+    def update_queues(self, processes):
+        def get_state(p):
+            return p.state.value if hasattr(p.state, "value") else p.state
+
+        ready = [p for p in processes if get_state(p) == "ready"]
+        running = [p for p in processes if get_state(p) == "running"]
+        finished = [p for p in processes if get_state(p) == "finished"]
 
         self.ready_box.set_processes(ready)
         self.running_box.set_processes(running)
@@ -67,3 +70,6 @@ class QueueTables(QWidget):
     def reset(self):
         for box in [self.ready_box, self.running_box, self.waiting_box]:
             box.list.clear()
+    
+    def get_state(p):
+            return p.state.value if hasattr(p.state, "value") else p.state

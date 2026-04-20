@@ -56,7 +56,7 @@ class ResultsTable(QWidget):
             bg = QColor(ROW_COLORS[row % len(ROW_COLORS)])
             values = [
                 p.name,
-                p.process_type.value,
+                p.process_type.value if hasattr(p.process_type, "value") else p.process_type,
                 str(p.burst_time),
                 str(p.arrival_time),
                 str(p.start_time),
